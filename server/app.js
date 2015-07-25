@@ -1,4 +1,5 @@
 var express = require('express');
+var models = require('./models');
 var db = require('./db');
 
 // Middleware
@@ -17,6 +18,7 @@ app.set("port", 3000);
 // Logging and parsing
 app.use(morgan('dev'));
 app.use(parser.json());
+app.use(parser.urlencoded({ extended: true }));
 
 // Set up our routes
 app.use("/classes", router);
@@ -29,4 +31,3 @@ if (!module.parent) {
   app.listen(app.get("port"));
   console.log("Listening on", app.get("port"));
 }
-
