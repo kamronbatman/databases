@@ -3,10 +3,9 @@ var db = require('../db');
 module.exports = {
   messages: {
     get: function (cb) {
-      var command = 'SELECT users.username, rooms.roomname, messages.text, messages.createdAt, messages.messageid FROM users, rooms, messages';
+      var command = 'SELECT users.username, rooms.roomname, messages.text, messages.createdAt, messages.messageid as objectId FROM users, rooms, messages WHERE rooms.roomid=messages.roomid AND users.userid=messages.userid';
       db.query(command, function(err, rows){
         if (cb) { cb(err,rows) };
-        db.end();
       });
     }, // a function which produces all the messages
     post: function (messageObj, cb) {
@@ -21,7 +20,7 @@ module.exports = {
       db.query(command, messageObj.text, function(err, result){
         //console.log('Error?',err);
         //console.log('Results?', result);
-        if (cb) { cb(err,results) };
+        if (cb) { cb(err,result) };
       });
     } // a function which can be used to insert a message into the database
   },
