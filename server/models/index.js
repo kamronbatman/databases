@@ -1,34 +1,78 @@
-var db = require('../db');
+'use strict';
 
-module.exports = {
-  messages: {
-    get: function (cb) {
-      var command = 'SELECT users.username, rooms.roomname, messages.text, messages.createdAt, messages.messageid as objectId FROM users, rooms, messages WHERE rooms.roomid=messages.roomid AND users.userid=messages.userid';
-      db.query(command, function(err, rows){
-        if (cb) { cb(err,rows) };
-      });
-    }, // a function which produces all the messages
-    post: function (messageObj, cb) {
-      var command =
-        'INSERT IGNORE INTO users SET username="' + messageObj.username + '";\n' +
-        'INSERT IGNORE INTO rooms SET roomname=LOWER("' + messageObj.roomname + '");\n' +
-        'INSERT INTO messages (userid, roomid, text) ' +
-        'SELECT userid, roomid, ? ' +
-          'FROM users, rooms ' +
-          'WHERE users.username="' + messageObj.username + '" AND rooms.roomname=LOWER("' + messageObj.roomname + '");';
+var fs        = require('fs');
+var path      = require('path');
+var Sequelize = require('sequelize');
+var basename  = path.basename(module.filename);
+var env       = process.env.NODE_ENV || 'development';
+var config    = require(__dirname + '/../config/config.json')[env];
+var sequelize = new Sequelize(config.database, config.username, config.password, config);
+var db        = {};
 
-      db.query(command, messageObj.text, function(err, result){
-        //console.log('Error?',err);
-        //console.log('Results?', result);
-        if (cb) { cb(err,result) };
-      });
-    } // a function which can be used to insert a message into the database
+fs
+  .readdirSync(__dirname)
+  .filter(function(file) {
+    return (file.indexOf('.') !== 0) && (file !== basename);
+  })
+  .forEach(function(file) {
+    if (file.slice(-3) !== '.js') return;
+    var model = sequelize['import'](path.join(__dirname, file));
+    db[model.name] = model;
+  });
+
+Object.keys(db).forEach(function(modelName) {
+  if ('associate' in db[modelName]) {
+    db[modelName].associate(db);
+  }
+});
+
+db.sequelize = sequelize;
+db.Sequelize = Sequelize;
+
+db.User = sequelize.define('user', {
+    id: {
+      type: Sequelize.INTEGER,
+      field: 'userid',
+      primaryKey: true,
+      autoIncrement: true
+    },
+    username: { type: Sequelize.STRING, unique: true }
+  }, { freezeTableName: true, timestamps: true });
+
+db.Room = sequelize.define('room', {
+    id: {
+      type: Sequelize.INTEGER,
+      field: 'roomid',
+      primaryKey: true,
+      autoIncrement: true
+    },
+    roomname: { type: Sequelize.STRING, unique: true }
+  }, { freezeTableName: true, timestamps: true });
+
+db.Message = sequelize.define('message', {
+    id: {
+      type: Sequelize.INTEGER,
+      field: 'messageid',
+      primaryKey: true,
+      autoIncrement: true
+    },
+    objectId: {
+      type: Sequelize.UUID,
+      allowNull: false,
+      unique: true
+    },
+    text: Sequelize.STRING,
   },
+  {
+    freezeTableName: true,
+    timestamps: true
+  });
 
-/*  users: {
-    // Ditto as above.
-    get: function () {},
-    post: function () {}
-  }*/
-};
+db.User.hasMany(db.Message);
+db.Room.hasMany(db.Message);
 
+db.User.sync();
+db.Room.sync();
+db.Message.sync();
+
+module.exports = db;

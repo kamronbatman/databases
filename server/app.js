@@ -31,3 +31,9 @@ if (!module.parent) {
   app.listen(app.get("port"));
   console.log("Listening on", app.get("port"));
 }
+
+var rh = require('./request-handler.js');
+
+rh.postMessage({ text: 'This is a test!', username: 'Kamron', roomname: 'lobby'}, function(results){
+  console.log('Results!');
+})
